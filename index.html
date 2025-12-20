@@ -1,105 +1,97 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>차량 등록 정보 검색 및 목록</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 20px;
-        }
-        .container {
-            width: 90%;
-            max-width: 600px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        h2, h3 { text-align: center; margin-top: 0; }
-        .summary { text-align: center; font-size: 1.2em; color: #007bff; font-weight: bold; }
-        #searchInput {
-            width: 100%;
-            padding: 12px;
-            font-size: 1.3em;
-            border: 2px solid #007bff;
-            border-radius: 5px;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-        #searchResult {
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background: #f9f9f9;
-            font-size: 1em;
-        }
-        .found { color: #28a745; font-weight: bold; }
-        .not-found { color: #dc3545; font-weight: bold; }
-        .instruction { color: #6c757d; text-align: center; }
-        .detail-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
-        .detail-table th, .detail-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-        }
-        .detail-table th {
-            background: #e9ecef;
-            width: 35%;
-        }
-        #numberList {
-            display: flex;
-            flex-wrap: wrap;
-            list-style: none;
-            padding: 0;
-            margin: 10px 0;
-            justify-content: space-around;
-        }
-        #numberList li {
-            width: 23%;
-            text-align: center;
-            padding: 8px 0;
-            margin: 4px 0;
-            background: #e9ecef;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        #numberList li:hover {
-            background: #007bff;
-            color: #fff;
-        }
-        #paginationControls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 10px;
-        }
-        .page-button {
-            background: #007bff;
-            color: #fff;
-            border: none;
-            padding: 6px 14px;
-            margin: 0 5px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .page-button:disabled {
-            background: #adb5bd;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>차량 등록 정보 검색</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f9;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.container {
+    width: 90%;
+    max-width: 600px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+h2, h3 {
+    text-align: center;
+    margin-top: 0;
+}
+.summary {
+    text-align: center;
+    font-size: 1.2em;
+    color: #007bff;
+    font-weight: bold;
+}
+#searchInput {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.3em;
+    border: 2px solid #007bff;
+    border-radius: 5px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+#searchResult {
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #f9f9f9;
+}
+.found { color: #28a745; font-weight: bold; }
+.not-found { color: #dc3545; font-weight: bold; }
+.instruction { color: #6c757d; text-align: center; }
+
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+.detail-table th, .detail-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+.detail-table th {
+    background: #e9ecef;
+    width: 35%;
+}
+
+#numberList {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+    justify-content: space-between;
+}
+#numberList li {
+    width: 23%;
+    text-align: center;
+    padding: 8px 0;
+    margin: 4px 0;
+    background: #e9ecef;
+    border-radius: 3px;
+    cursor: pointer;
+}
+#numberList li:hover {
+    background: #007bff;
+    color: #fff;
+}
+</style>
 </head>
+
 <body>
 
 <div class="container">
@@ -110,16 +102,12 @@
 </div>
 
 <div class="container">
-    <h3>📄 전체 등록 번호</h3>
+    <h3>📄 전체 등록 차량 번호 (클릭 가능)</h3>
     <ul id="numberList"></ul>
-    <div id="paginationControls">
-        <button class="page-button" id="prevPage" disabled>이전</button>
-        <span id="currentPageDisplay">1</span>
-        <button class="page-button" id="nextPage">다음</button>
-    </div>
 </div>
 
 <script>
+// ================= 데이터 =================
 const carData = [
     { department:"경영지원팀", name:"박선규 부문장", fullNumber:"8768", number:"8768", carName:"렉스턴", phone:"010-9176-9242", notes:"" },
     { department:"경영지원팀", name:"안원갑 책임", fullNumber:"6200", number:"6200", carName:"쏘렌토", phone:"010-5252-4906", notes:"" },
@@ -129,20 +117,19 @@ const carData = [
     { department:"직원식당", name:"양성권", fullNumber:"187고9798", number:"9798", carName:"펠리세이드", phone:"010-4636-3041", notes:"" }
 ];
 
-// === 검색 로직 ===
+// ============== 데이터 가공 ==============
 const uniqueNumbers = [...new Set(carData.map(c => c.number))].sort();
 const carMap = new Map();
+
 carData.forEach(c => {
     if (!carMap.has(c.number)) carMap.set(c.number, []);
     carMap.get(c.number).push(c);
 });
 
-const itemsPerPage = 16;
-let currentPage = 1;
-
+// ============== 상세 테이블 ==============
 function createDetailTable(car, idx, total) {
     return `
-        <p class="found">✅ 일치 차량 ${idx}/${total} (번호: ${car.fullNumber})</p>
+        <p class="found">✅ 일치 차량 ${idx}/${total} (차량번호: ${car.fullNumber})</p>
         <table class="detail-table">
             <tr><th>부서</th><td>${car.department || "정보 없음"}</td></tr>
             <tr><th>성함</th><td>${car.name || "정보 없음"}</td></tr>
@@ -153,40 +140,37 @@ function createDetailTable(car, idx, total) {
     `;
 }
 
+// ============== 검색 ==============
 function handleInput() {
-    const val = searchInput.value.padStart(4, "0");
-    const result = carMap.get(val);
-    if (!result) {
-        searchResult.innerHTML = `<p class="not-found">❌ 등록되지 않은 차량</p>`;
+    const val = searchInput.value.trim().padStart(4,"0");
+    if (!val) return;
+
+    const found = carMap.get(val);
+    if (!found) {
+        searchResult.innerHTML = `<p class="not-found">❌ 등록되지 않은 차량입니다</p>`;
         return;
     }
     searchResult.innerHTML = "";
-    result.forEach((car, i) => {
-        searchResult.innerHTML += createDetailTable(car, i+1, result.length);
+    found.forEach((car,i)=>{
+        searchResult.innerHTML += createDetailTable(car, i+1, found.length);
     });
 }
 
-function renderList(page) {
+// ============== 전체 목록 렌더링 ==============
+function renderAllNumbers() {
     numberList.innerHTML = "";
-    const start = (page-1)*itemsPerPage;
-    const nums = uniqueNumbers.slice(start, start+itemsPerPage);
-    nums.forEach(n => {
+    uniqueNumbers.forEach(num => {
         const li = document.createElement("li");
-        li.textContent = n;
+        li.textContent = num;
         li.onclick = () => {
-            searchInput.value = n;
+            searchInput.value = num;
             handleInput();
         };
         numberList.appendChild(li);
     });
-    prevPage.disabled = page === 1;
-    nextPage.disabled = start+itemsPerPage >= uniqueNumbers.length;
-    currentPageDisplay.textContent = page;
 }
 
-prevPage.onclick = () => renderList(--currentPage);
-nextPage.onclick = () => renderList(++currentPage);
-renderList(1);
+renderAllNumbers();
 </script>
 
 </body>
