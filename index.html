@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>차량 등록 정보 검색 및 목록</title>
     <style>
-        /* 기본 스타일 및 모바일 최적화 */
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #f4f4f9;
             margin: 0;
             padding: 0;
@@ -16,384 +15,179 @@
             align-items: center;
             padding-top: 20px;
         }
-
         .container {
             width: 90%;
             max-width: 600px;
-            background-color: #ffffff;
+            background: #fff;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-
-        h2, h3 {
-            color: #333;
-            text-align: center;
-            margin-top: 0;
-        }
-
-        .summary {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-            color: #007bff;
-            font-weight: bold;
-        }
-
-        /* 검색 입력창 스타일 */
+        h2, h3 { text-align: center; margin-top: 0; }
+        .summary { text-align: center; font-size: 1.2em; color: #007bff; font-weight: bold; }
         #searchInput {
-            width: calc(100% - 20px);
+            width: 100%;
             padding: 12px;
-            margin-bottom: 20px;
             font-size: 1.3em;
             border: 2px solid #007bff;
             border-radius: 5px;
-            box-sizing: border-box;
             text-align: center;
+            margin-bottom: 15px;
         }
-
-        /* 검색 결과/상세 정보/미리보기 영역 */
         #searchResult {
             padding: 15px;
-            border: 1px solid #e0e0e0;
+            border: 1px solid #ddd;
             border-radius: 5px;
-            min-height: 50px;
-            background-color: #f9f9f9;
-            font-size: 1.1em;
-            margin-bottom: 25px;
-            position: relative;
+            background: #f9f9f9;
+            font-size: 1em;
         }
-
-        .found { color: #28a745; font-weight: bold; margin-top: 10px; }
+        .found { color: #28a745; font-weight: bold; }
         .not-found { color: #dc3545; font-weight: bold; }
         .instruction { color: #6c757d; text-align: center; }
-        
-        /* 상세 정보 테이블 스타일 */
         .detail-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
             font-size: 0.9em;
-            margin-bottom: 20px;
         }
-
         .detail-table th, .detail-table td {
             border: 1px solid #ddd;
             padding: 8px;
-            text-align: left;
         }
-
         .detail-table th {
-            background-color: #e9ecef;
-            width: 35%; 
-            font-weight: bold;
+            background: #e9ecef;
+            width: 35%;
         }
-
-        /* 실시간 미리보기 스타일 */
-        .preview-list {
+        #numberList {
+            display: flex;
+            flex-wrap: wrap;
             list-style: none;
             padding: 0;
-            margin: 10px 0 0 0;
-            max-height: 300px; /* 높이 제한을 늘리고 스크롤 추가 */
-            overflow-y: auto;
+            margin: 10px 0;
+            justify-content: space-around;
         }
-        .preview-list li {
-            padding: 8px 10px;
-            border-bottom: 1px solid #eee;
+        #numberList li {
+            width: 23%;
+            text-align: center;
+            padding: 8px 0;
+            margin: 4px 0;
+            background: #e9ecef;
+            border-radius: 3px;
             cursor: pointer;
-            background-color: #fff;
-            transition: background-color 0.1s;
         }
-        .preview-list li:hover {
-            background-color: #e6f2ff;
-            font-weight: bold;
+        #numberList li:hover {
+            background: #007bff;
+            color: #fff;
         }
-        .preview-header {
-            font-size: 0.9em;
-            color: #007bff;
-            margin-bottom: 5px;
-            font-weight: bold;
+        #paginationControls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
         }
-
-        /* 목록 영역 스타일 (기존과 동일) */
-        .list-section { border-top: 1px solid #e0e0e0; }
-        #numberList { display: flex; flex-wrap: wrap; justify-content: space-around; list-style: none; padding: 0; margin: 10px 0; }
-        #numberList li { width: 23%; text-align: center; padding: 8px 0; margin: 4px 0; background-color: #e9ecef; border-radius: 3px; font-size: 1em; cursor: pointer; transition: background-color 0.2s; }
-        #numberList li:hover { background-color: #007bff; color: white; }
-        #paginationControls { display: flex; justify-content: center; align-items: center; margin-top: 15px; }
-        .page-button { background-color: #007bff; color: white; border: none; padding: 8px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; font-size: 1em; }
-        .page-button:disabled { background-color: #adb5bd; cursor: not-allowed; }
-        .page-number { font-size: 1.1em; font-weight: bold; margin: 0 10px; color: #333; }
+        .page-button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .page-button:disabled {
+            background: #adb5bd;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>🔍 차량 등록 정보 검색</h2>
-        <div class="summary">
-            차량 번호 뒷자리 4자리 검색
-        </div>
-        <p style="color: #6c757d; text-align: center;">4자리 차량 번호만 입력하거나, 아래 목록을 클릭하세요.</p>
+<div class="container">
+    <h2>🔍 차량 등록 정보 검색</h2>
+    <div class="summary">차량 번호 뒷자리 4자리 검색</div>
+    <input type="number" id="searchInput" placeholder="예: 1914" oninput="handleInput()">
+    <div id="searchResult" class="instruction">번호를 입력하세요</div>
+</div>
 
-        <input type="number" id="searchInput" placeholder="예: 1914" maxlength="4" inputmode="numeric" oninput="handleInput()">
-
-        <div id="searchResult" class="instruction">
-            번호를 입력하시면 상세 정보가 표시됩니다.
-        </div>
+<div class="container">
+    <h3>📄 전체 등록 번호</h3>
+    <ul id="numberList"></ul>
+    <div id="paginationControls">
+        <button class="page-button" id="prevPage" disabled>이전</button>
+        <span id="currentPageDisplay">1</span>
+        <button class="page-button" id="nextPage">다음</button>
     </div>
+</div>
 
-    <div class="container list-section">
-        <h3>📄 전체 등록 번호 목록 (클릭 가능)</h3>
-        <ul id="numberList">
-            </ul>
-        
-        <div id="paginationControls">
-            <button class="page-button" id="prevPage" disabled>이전</button>
-            <span class="page-number" id="currentPageDisplay">1 / 4</span>
-            <button class="page-button" id="nextPage">다음</button>
-        </div>
-    </div>
+<script>
+const carData = [
+    { department:"경영지원팀", name:"박선규 부문장", fullNumber:"8768", number:"8768", carName:"렉스턴", phone:"010-9176-9242", notes:"" },
+    { department:"경영지원팀", name:"안원갑 책임", fullNumber:"6200", number:"6200", carName:"쏘렌토", phone:"010-5252-4906", notes:"" },
+    { department:"스키 관리팀", name:"한상수 수석", fullNumber:"50라6834", number:"6834", carName:"모닝", phone:"010-8777-4640", notes:"팀장" },
+    { department:"스키 관리팀", name:"김진한 책임", fullNumber:"342어7981", number:"7981", carName:"그랜저", phone:"010-7770-1531", notes:"패트롤" },
+    { department:"시설팀", name:"임수택 수석", fullNumber:"242어1541", number:"1541", carName:"그랜저", phone:"010-6268-9583", notes:"" },
+    { department:"직원식당", name:"양성권", fullNumber:"187고9798", number:"9798", carName:"펠리세이드", phone:"010-4636-3041", notes:"" }
+];
 
-    <script>
-        // --- 데이터 및 환경 설정 (차량색 정보 제거됨) ---
-        
-        const carData = [
-            { department: "스키학교", name: "김현창 팀장", fullNumber: "14보3974", number: "3974", carName: "아반떼", notes: "" },
-            { department: "스키학교", name: "지영찬 책임", fullNumber: "48두3227", number: "3227", carName: "올란도", notes: "" },
-            { department: "스키학교", name: "최샛별 선임", fullNumber: "53고4886", number: "4886", carName: "스파크", notes: "" },
-            { department: "스키학교", name: "김정현", fullNumber: "14노1969", number: "1969", carName: "쏘렌토", notes: "사설23시 퇴근" },
-            { department: "스키학교", name: "최용우", fullNumber: "08거4024", number: "4024", carName: "카니발", notes: "사설" },
-            { department: "기획", name: "이일헌 팀장", fullNumber: "2486", number: "2486", carName: "카니발", notes: "" },
-            { department: "기획", name: "김성호 수석", fullNumber: "146가5852", number: "5852", carName: "그랜저", notes: "" },
-            { department: "로렌", name: "심경섭", fullNumber: "01더0909", number: "0909", carName: "테슬라", notes: "" },
-            { department: "로렌", name: "로렌 직원", fullNumber: "343나2849", number: "2849", carName: "코나", notes: "" },
-            { department: "로렌", name: "로렌 직원", fullNumber: "170가6719", number: "6719", carName: "셀토스", notes: "" },
-            { department: "로렌", name: "로렌 직원", fullNumber: "51고1914", number: "1914", carName: "쏘렌토", notes: "" },
-            { department: "단체", name: "김민석 선임", fullNumber: "360부8336", number: "8336", carName: "제타", notes: "" },
-            { department: "단체", name: "송하빈", fullNumber: "109모3824", number: "3824", carName: "투싼", notes: "" },
-            { department: "단체", name: "송현민", fullNumber: "75가9569", number: "9569", carName: "카니발", notes: "인솔" },
-            { department: "2층식당", name: "사장님", fullNumber: "149호2208", number: "2208", carName: "아반떼", notes: "실사용 2대" },
-            { department: "2층식당", name: "직원", fullNumber: "69두8493", number: "8493", carName: "골프", notes: "실사용 2대" },
-            { department: "2층식당", name: "직원", fullNumber: "84부4508", number: "4508", carName: "스타렉스", notes: "실사용 2대" },
-            { department: "렌탈", name: "석인칠", fullNumber: "315머8812", number: "8812", carName: "펠리세이드", notes: "" },
-            { department: "스키 관리팀", name: "한상수 수석", fullNumber: "50라6834", number: "6834", carName: "모닝", notes: "팀장" },
-            { department: "스키 관리팀", name: "장동린 수석", fullNumber: "25서2851", number: "2851", carName: "포드", notes: "관리" },
-            { department: "스키 관리팀", name: "김영대 수석", fullNumber: "09나5334", number: "5334", carName: "그랜저", notes: "리프트" },
-            { department: "스키 관리팀", name: "권용구 책임", fullNumber: "23거4834", number: "4834", carName: "산타페", notes: "리프트" },
-            { department: "스키 관리팀", name: "권용구 책임", fullNumber: "55더5979", number: "5979", carName: "모닝", notes: "리프트" },
-            { department: "스키 관리팀", name: "범진 책임", fullNumber: "232거8089", number: "8089", carName: "코나", notes: "" },
-            { department: "스키 관리팀", name: "변재훈 선임", fullNumber: "245소6622", number: "6622", carName: "K7", notes: "" },
-            { department: "스키 관리팀", name: "김진한 책임", fullNumber: "342어7981", number: "7981", carName: "그랜저", notes: "패트롤" },
-            { department: "스키 관리팀", name: "최민기 선임", fullNumber: "83서4635", number: "4635", carName: "렉스턴", notes: "" },
-            { department: "스키 관리팀", name: "윤우솔 선임", fullNumber: "245저1916", number: "1916", carName: "셀토스", notes: "" },
-            { department: "스키 관리팀", name: "김상훈 수석", fullNumber: "41도6458", number: "6458", carName: "레이", notes: "제설" },
-            { department: "스키 관리팀", name: "장대선 수석", fullNumber: "12노9977", number: "9977", carName: "폭스바겐", notes: "" },
-            { department: "스키 관리팀", name: "김원기 책임", fullNumber: "25무1965", number: "1965", carName: "스바루", notes: "" },
-            { department: "스키 관리팀", name: "김원기 책임", fullNumber: "60머8410", number: "8410", carName: "모닝", notes: "" },
-            { department: "스키 관리팀", name: "박효태 책임", fullNumber: "34누8065", number: "8065", carName: "벤츠", notes: "" },
-            { department: "스키 관리팀", name: "박효태 책임", fullNumber: "189라3884", number: "3884", carName: "쏘렌토", notes: "" },
-            { department: "스키 관리팀", name: "전재홍 책임", fullNumber: "36서6772", number: "6772", carName: "카니발", notes: "" },
-            { department: "스키 관리팀", name: "배현준 책임", fullNumber: "92머2782", number: "2782", carName: "포터", notes: "" },
-            { department: "경영지원팀", name: "박선규 부문장", fullNumber: "8768", number: "8768", carName: "렉스턴", notes: "" },
-            { department: "경영지원팀", name: "안원갑 책임", fullNumber: "6200", number: "6200", carName: "쏘렌토", notes: "" },
-            { department: "경영지원팀", name: "신보배", fullNumber: "367도4728", number: "4728", carName: "", notes: "" },
-            { department: "시설팀", name: "임수택 수석", fullNumber: "242어1541", number: "1541", carName: "그랜저", notes: "" },
-            { department: "시설팀", name: "김용백 수석", fullNumber: "321러7699", number: "7699", carName: "", notes: "" },
-            { department: "시설팀", name: "길종득 책임", fullNumber: "63고0242", number: "0242", carName: "아베오", notes: "" },
-            { department: "시설팀", name: "김대진 책임", fullNumber: "67가5062", number: "5062", carName: "sm3", notes: "" },
-            { department: "시설팀", name: "곽영민선임", fullNumber: "123두4824", number: "4824", carName: "xm3", notes: "" },
-            { department: "시설팀", name: "박상현 선임", fullNumber: "02머7578", number: "7578", carName: "티볼리", notes: "" },
-            { department: "시설팀", name: "박상현 선임", fullNumber: "106버3568", number: "3568", carName: "니로", notes: "" },
-            { department: "시설팀", name: "이장호선임", fullNumber: "308서5054", number: "5054", carName: "아반떼", notes: "" },
-            { department: "시설팀", name: "최성모 책임", fullNumber: "54부3223", number: "3223", carName: "", notes: "" },
-            { department: "직원식당", name: "양성권", fullNumber: "187고9798", number: "9798", carName: "", notes: "" },
-            { department: "직원식당", name: "박기현", fullNumber: "30부3573", number: "3573", carName: "", notes: "" },
-            { department: "직원식당", name: "박기현", fullNumber: "229호6146", number: "6146", carName: "", notes: "" },
-            { department: "렌탈샵", name: "최경섭실장", fullNumber: "13누7565", number: "7565", carName: "벤츠", notes: "" },
-            { department: "렌탈", name: "손문배", fullNumber: "6247", number: "6247", carName: "아반떼", notes: "" },
-            { department: "리프트", name: "박준혁", fullNumber: "308더3642", number: "3642", carName: "아반떼", notes: "" },
-            { department: "식음료팀", name: "엄분난", fullNumber: "31모5729", number: "5729", carName: "", notes: "" },
-            { department: "식음료팀", name: "신동원", fullNumber: "12무9274", number: "9274", carName: "", notes: "" },
-            { department: "식음료팀", name: "시설팀", fullNumber: "6157", number: "6157", carName: "스타렉스", notes: "" },
-            { department: "식당", name: "", fullNumber: "32러9462", number: "9462", carName: "스파크", notes: "" },
-            { department: "식당", name: "", fullNumber: "12부9274", number: "9274", carName: "레이", notes: "" },
-            { department: "식당", name: "", fullNumber: "269도2278", number: "2278", carName: "", notes: "" },
-            { department: "식당", name: "", fullNumber: "296보1987", number: "1987", carName: "", notes: "" },
-            { department: "식당", name: "이순옥", fullNumber: "259도2278", number: "2278", carName: "투싼", notes: "" }
-        ];
+// === 검색 로직 ===
+const uniqueNumbers = [...new Set(carData.map(c => c.number))].sort();
+const carMap = new Map();
+carData.forEach(c => {
+    if (!carMap.has(c.number)) carMap.set(c.number, []);
+    carMap.get(c.number).push(c);
+});
 
-        // --- 초기화 및 유틸리티 함수 ---
-        const uniqueNumbers = Array.from(new Set(carData.map(d => d.number))).sort();
-        const carMapMulti = new Map();
-        carData.forEach(car => {
-            if (!car.number) return; 
-            if (!carMapMulti.has(car.number)) {
-                carMapMulti.set(car.number, []);
-            }
-            carMapMulti.get(car.number).push(car);
-        });
+const itemsPerPage = 16;
+let currentPage = 1;
 
-        const itemsPerPage = 16; 
-        let currentPage = 1;
-        const totalPages = Math.ceil(uniqueNumbers.length / itemsPerPage);
+function createDetailTable(car, idx, total) {
+    return `
+        <p class="found">✅ 일치 차량 ${idx}/${total} (번호: ${car.fullNumber})</p>
+        <table class="detail-table">
+            <tr><th>부서</th><td>${car.department || "정보 없음"}</td></tr>
+            <tr><th>성함</th><td>${car.name || "정보 없음"}</td></tr>
+            <tr><th>차량명</th><td>${car.carName || "정보 없음"}</td></tr>
+            <tr><th>전화번호</th><td>${car.phone || "정보 없음"}</td></tr>
+            <tr><th>비고</th><td>${car.notes || "없음"}</td></tr>
+        </table>
+    `;
+}
 
-        const numberList = document.getElementById('numberList');
-        const prevPageButton = document.getElementById('prevPage');
-        const nextPageButton = document.getElementById('nextPage');
-        const currentPageDisplay = document.getElementById('currentPageDisplay');
-        const searchInput = document.getElementById('searchInput');
-        const searchResultDiv = document.getElementById('searchResult');
+function handleInput() {
+    const val = searchInput.value.padStart(4, "0");
+    const result = carMap.get(val);
+    if (!result) {
+        searchResult.innerHTML = `<p class="not-found">❌ 등록되지 않은 차량</p>`;
+        return;
+    }
+    searchResult.innerHTML = "";
+    result.forEach((car, i) => {
+        searchResult.innerHTML += createDetailTable(car, i+1, result.length);
+    });
+}
 
+function renderList(page) {
+    numberList.innerHTML = "";
+    const start = (page-1)*itemsPerPage;
+    const nums = uniqueNumbers.slice(start, start+itemsPerPage);
+    nums.forEach(n => {
+        const li = document.createElement("li");
+        li.textContent = n;
+        li.onclick = () => {
+            searchInput.value = n;
+            handleInput();
+        };
+        numberList.appendChild(li);
+    });
+    prevPage.disabled = page === 1;
+    nextPage.disabled = start+itemsPerPage >= uniqueNumbers.length;
+    currentPageDisplay.textContent = page;
+}
 
-        // 1. 상세 정보 표시 HTML 생성 함수 (차량색 정보 제거됨)
-        function createDetailTable(car, index) {
-            const header = carMapMulti.get(car.number).length > 1 
-                ? `<p class="found">✅ 일치 차량 정보 ${index} / ${carMapMulti.get(car.number).length} (차량번호: ${car.fullNumber})</p>`
-                : `<p class="found">✅ 등록된 차량입니다! (차량번호: ${car.fullNumber})</p>`;
-            
-            // 차량명이 비어있는 경우 '없음'으로 표시
-            const displayCarName = (car.carName && car.carName.toUpperCase() !== 'SUV') ? car.carName : '정보 없음';
-            
-            return `
-                ${header}
-                <table class="detail-table">
-                    <tr><th>부서</th><td>${car.department || '정보 없음'}</td></tr>
-                    <tr><th>성함</th><td>${car.name || '정보 없음'}</td></tr>
-                    <tr><th>차량명</th><td>${displayCarName}</td></tr>
-                    <tr><th>비고</th><td>${car.notes || '없음'}</td></tr>
-                </table>
-            `;
-        }
-
-
-        // 2. 최종 검색 실행 함수
-        function displayCarDetails(paddedVal) {
-            const foundCars = carMapMulti.get(paddedVal);
-
-            if (foundCars && foundCars.length > 0) {
-                searchResultDiv.innerHTML = '';
-                
-                if (foundCars.length > 1) {
-                    searchResultDiv.innerHTML += `<p class="found" style="margin-bottom: 5px;">⚠️ **동일 번호 (${paddedVal}) 발견!** 총 ${foundCars.length}건의 정보가 있습니다.</p>`;
-                }
-
-                foundCars.forEach((car, index) => {
-                    searchResultDiv.innerHTML += createDetailTable(car, index + 1);
-                });
-                
-                searchResultDiv.className = ''; 
-            } else {
-                searchResultDiv.innerHTML = `<p class="not-found">❌ [${paddedVal}] 목록에 없는 차량입니다.</p>`;
-                searchResultDiv.className = 'instruction';
-            }
-        }
-
-        // 3. 실시간 미리보기 표시 함수 (개수 제한 없음)
-        function displayPreview(inputVal) {
-            // 입력값으로 시작하는 모든 고유 차량 번호를 찾습니다.
-            const matchingNumbers = uniqueNumbers.filter(num => num.startsWith(inputVal));
-            
-            if (matchingNumbers.length > 0) {
-                let html = `<div class="preview-header">✨ **미리 보기:** ${inputVal}로 시작하는 차량번호 (${matchingNumbers.length}개)</div>`;
-                html += '<ul class="preview-list">';
-                
-                matchingNumbers.forEach(num => {
-                    // 클릭 시 해당 번호로 검색 실행하도록 설정
-                    html += `<li onclick="executeSearch('${num}')">${num}</li>`;
-                });
-                html += '</ul>';
-                
-                searchResultDiv.innerHTML = html;
-                searchResultDiv.className = '';
-            } else {
-                searchResultDiv.innerHTML = `<p class="not-found">입력한 ${inputVal}로 시작하는 번호가 없습니다.</p>`;
-                searchResultDiv.className = 'instruction';
-            }
-        }
-        
-        // 4. 검색 입력 핸들러 (미리보기/최종 검색 분기)
-        function handleInput() {
-            let inputVal = searchInput.value.trim();
-
-            if (inputVal.length > 4) {
-                searchInput.value = inputVal.slice(0, 4);
-                inputVal = searchInput.value;
-            }
-
-            if (inputVal === "") {
-                searchResultDiv.innerHTML = '<div class="instruction">번호를 입력하시면 상세 정보가 표시됩니다.</div>';
-                searchResultDiv.className = '';
-                return;
-            }
-            
-            // 입력 길이가 4자리 미만이면 미리보기 실행
-            if (inputVal.length < 4) {
-                displayPreview(inputVal);
-            } else {
-                // 4자리 완료되면 최종 검색 실행
-                const paddedVal = inputVal.padStart(4, '0');
-                displayCarDetails(paddedVal);
-            }
-        }
-
-        // 5. 미리보기 클릭 시 검색 실행을 위한 글로벌 함수
-        window.executeSearch = function(number) {
-            searchInput.value = number;
-            displayCarDetails(number);
-        }
-
-        // 6. 목록 클릭 이벤트 핸들러 (기존과 동일)
-        function handleListClick(event) {
-            if (event.target.tagName === 'LI') {
-                const number = event.target.textContent.trim();
-                window.executeSearch(number); // 재사용
-            }
-        }
-
-        // 7. 페이지네이션 (기존과 동일)
-        function renderList(page) {
-            currentPage = page;
-            numberList.innerHTML = ''; 
-
-            const start = (currentPage - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
-            const pageNumbers = uniqueNumbers.slice(start, end);
-
-            pageNumbers.forEach(number => {
-                const li = document.createElement('li');
-                li.textContent = number;
-                li.addEventListener('click', handleListClick); 
-                numberList.appendChild(li);
-            });
-
-            updatePaginationControls();
-        }
-
-        function updatePaginationControls() {
-            prevPageButton.disabled = currentPage === 1;
-            nextPageButton.disabled = currentPage === totalPages;
-            currentPageDisplay.textContent = `${currentPage} / ${totalPages}`;
-        }
-
-        prevPageButton.addEventListener('click', () => {
-            if (currentPage > 1) {
-                renderList(currentPage - 1);
-            }
-        });
-
-        nextPageButton.addEventListener('click', () => {
-            if (currentPage < totalPages) {
-                renderList(currentPage + 1);
-            }
-        });
-
-        // 웹페이지 로드 시 초기 목록 렌더링
-        document.addEventListener('DOMContentLoaded', () => {
-            renderList(1);
-        });
-
-    </script>
+prevPage.onclick = () => renderList(--currentPage);
+nextPage.onclick = () => renderList(++currentPage);
+renderList(1);
+</script>
 
 </body>
 </html>
