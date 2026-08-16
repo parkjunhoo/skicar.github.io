@@ -3,13 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>차량 등록 정보 검색 및 목록</title>
+    <title>차량 등록 정보 검색 및 관리</title>
+    <!-- Supabase JS 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Arial', sans-serif; background-color: #f4f4f9; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; padding-top: 20px; }
-        .container { width: 90%; max-width: 600px; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
-        h2, h3 { color: #333; text-align: center; margin-top: 0; }
-        .summary { text-align: center; margin-bottom: 20px; font-size: 1.2em; color: #007bff; font-weight: bold; }
-        #searchInput { width: calc(100% - 20px); padding: 12px; margin-bottom: 20px; font-size: 1.3em; border: 2px solid #007bff; border-radius: 5px; box-sizing: border-box; text-align: center; }
+        .container { width: 90%; max-width: 600px; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin-bottom: 20px; position: relative; }
+        
+        /* 상단 헤더 및 관리자 진입 버튼 */
+        .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header-area h2 { margin: 0; flex-grow: 1; text-align: center; }
+        .admin-open-btn { background: none; border: 1px solid #ccc; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.85em; color: #666; transition: background 0.2s; }
+        .admin-open-btn:hover { background-color: #eee; color: #333; }
+
+        .summary { text-align: center; margin-bottom: 20px; font-size: 1.1em; color: #007bff; font-weight: bold; }
+        #searchInput { width: 100%; padding: 12px; margin-bottom: 20px; font-size: 1.3em; border: 2px solid #007bff; border-radius: 5px; box-sizing: border-box; text-align: center; }
         #searchResult { padding: 15px; border: 1px solid #e0e0e0; border-radius: 5px; min-height: 50px; background-color: #f9f9f9; font-size: 1.1em; margin-bottom: 25px; position: relative; }
         .found { color: #28a745; font-weight: bold; margin-top: 10px; }
         .not-found { color: #dc3545; font-weight: bold; }
@@ -17,12 +25,19 @@
         .detail-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; margin-bottom: 20px; }
         .detail-table th, .detail-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         .detail-table th { background-color: #e9ecef; width: 35%; font-weight: bold; }
-        .tel-link { color: #007bff; text-decoration: none; font-weight: bold; } /* 전화번호 스타일 */
+        .tel-link { color: #007bff; text-decoration: none; font-weight: bold; }
         .preview-list { list-style: none; padding: 0; margin: 10px 0 0 0; max-height: 300px; overflow-y: auto; }
         .preview-list li { padding: 8px 10px; border-bottom: 1px solid #eee; cursor: pointer; background-color: #fff; transition: background-color 0.1s; }
         .preview-list li:hover { background-color: #e6f2ff; font-weight: bold; }
         .preview-header { font-size: 0.9em; color: #007bff; margin-bottom: 5px; font-weight: bold; }
+        
         .list-section { border-top: 1px solid #e0e0e0; }
+        
+        /* 번호 앞자리별 탭 메뉴 스타일 */
+        .prefix-tab-menu { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; background-color: #f8f9fa; padding: 5px; border-radius: 5px; }
+        .prefix-tab-btn { flex: 1; min-width: 40px; padding: 8px 5px; background: #e9ecef; border: none; border-radius: 4px; font-size: 0.95em; font-weight: bold; cursor: pointer; color: #495057; text-align: center; transition: all 0.2s; }
+        .prefix-tab-btn.active { background-color: #007bff; color: white; }
+
         #numberList { display: flex; flex-wrap: wrap; justify-content: space-around; list-style: none; padding: 0; margin: 10px 0; }
         #numberList li { width: 23%; text-align: center; padding: 8px 0; margin: 4px 0; background-color: #e9ecef; border-radius: 3px; font-size: 1em; cursor: pointer; transition: background-color 0.2s; }
         #numberList li:hover { background-color: #007bff; color: white; }
@@ -30,118 +45,292 @@
         .page-button { background-color: #007bff; color: white; border: none; padding: 8px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; font-size: 1em; }
         .page-button:disabled { background-color: #adb5bd; cursor: not-allowed; }
         .page-number { font-size: 1.1em; font-weight: bold; margin: 0 10px; color: #333; }
+
+        /* 모달 스타일 */
+        #adminModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background-color: #fff; padding: 25px; border-radius: 10px; width: 90%; max-width: 520px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 1.5em; cursor: pointer; color: #aaa; }
+        .close-modal:hover { color: #000; }
+
+        /* 관리자 내부 탭 메뉴 스타일 */
+        .admin-tab-menu { display: flex; margin-bottom: 15px; border-bottom: 2px solid #ddd; }
+        .admin-tab-btn { flex: 1; padding: 10px; background: none; border: none; font-size: 1em; font-weight: bold; cursor: pointer; color: #777; }
+        .admin-tab-btn.active { color: #007bff; border-bottom: 3px solid #007bff; margin-bottom: -2px; }
+        .admin-tab-content { display: none; }
+        .admin-tab-content.active { display: block; }
+
+        .admin-input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .admin-input-full { grid-column: span 2; }
+        .admin-input-group label { display: block; font-size: 0.8em; font-weight: bold; color: #555; margin-bottom: 3px; }
+        .admin-input-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; }
+        
+        .admin-btn { background-color: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; font-size: 1em; }
+        .admin-btn.delete { background-color: #dc3545; }
+        .admin-btn.edit { background-color: #ffc107; color: #333; }
+        .admin-btn:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>🔍 차량 등록 정보 검색</h2>
-        <div class="summary">차량 번호 뒷자리 4자리 검색</div>
-        <p style="color: #6c757d; text-align: center;">번호를 입력하거나 아래 목록을 클릭하세요.</p>
+        <div class="header-area">
+            <div style="width: 60px;"></div>
+            <h2>🔍 차량 등록 정보 검색</h2>
+            <button class="admin-open-btn" onclick="openAdminModal()">⚙️ 관리자</button>
+        </div>
+        <div class="summary">차량 번호 뒷자리 4자리 검색 (<span id="totalCarCount">총 0대</span>)</div>
+        <p style="color: #6c757d; text-align: center; margin-top: 0;">번호를 입력하거나 아래 목록을 클릭하세요.</p>
         <input type="number" id="searchInput" placeholder="예: 1914" maxlength="4" inputmode="numeric" oninput="handleInput()">
-        <div id="searchResult" class="instruction">번로를 입력하시면 전화번호를 포함한 상세 정보가 표시됩니다.</div>
+        <div id="searchResult" class="instruction">데이터를 불러오는 중입니다...</div>
     </div>
 
     <div class="container list-section">
-        <h3>📄 전체 목록</h3>
+        <h3>📄 전체 목록 및 앞자리별 보기</h3>
+        
+        <!-- 번호 앞자리별 탭 메뉴 생성 영역 -->
+        <div id="prefixTabMenu" class="prefix-tab-menu">
+            <!-- 동적으로 생성됨 -->
+        </div>
+
         <ul id="numberList"></ul>
         <div id="paginationControls">
             <button class="page-button" id="prevPage" disabled>이전</button>
-            <span class="page-number" id="currentPageDisplay">1 / 4</span>
-            <button class="page-button" id="nextPage">다음</button>
+            <span class="page-number" id="currentPageDisplay">1 / 1</span>
+            <button class="page-button" id="nextPage" disabled>다음</button>
+        </div>
+    </div>
+
+    <!-- 관리자 모달 팝업 -->
+    <div id="adminModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeAdminModal()">&times;</span>
+            <h3 style="margin-top: 0; color: #333;">⚙️ 관리자 모드</h3>
+            
+            <!-- 암호 입력 영역 -->
+            <div id="adminLoginArea">
+                <p style="font-size: 0.9em; color: #666; text-align: center;">데이터 수정을 위해 공용 암호를 입력하세요.</p>
+                <input type="password" id="adminPasswordInput" style="width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;" placeholder="공용 암호 입력">
+                <button class="admin-btn" onclick="verifyAdminPassword()">인증하기</button>
+            </div>
+            
+            <!-- 인증 후 패널 (탭 분리) -->
+            <div id="adminPanel" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="color: #28a745; font-weight: bold; font-size: 0.9em;">✅ 인증 완료</span>
+                    <button onclick="logoutAdmin()" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 0.85em; text-decoration: underline;">관리자 잠금</button>
+                </div>
+
+                <!-- 탭 메뉴 -->
+                <div class="admin-tab-menu">
+                    <button class="admin-tab-btn active" onclick="switchAdminTab('add')">➕ 신규 추가</button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('editDelete')">✏️ 수정 / 🗑️ 삭제</button>
+                </div>
+
+                <!-- [탭 1] 신규 추가 폼 -->
+                <div id="tabAdd" class="admin-tab-content active">
+                    <p style="font-size: 0.85em; color: #666; margin-top: 0;">새로운 차량 정보를 등록합니다.</p>
+                    <div class="admin-input-grid">
+                        <div class="admin-input-group admin-input-full">
+                            <label>전체 차량번호 (예: 123가4567)</label>
+                            <input type="text" id="addFullNumber" placeholder="전체 번호 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>검색용 뒷자리 4자리</label>
+                            <input type="text" id="addNumber" placeholder="예: 4567" maxlength="4">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>부서</label>
+                            <input type="text" id="addDepartment" placeholder="부서 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>성함</label>
+                            <input type="text" id="addName" placeholder="성함 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>전화번호</label>
+                            <input type="text" id="addPhone" placeholder="전화번호 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>차량명</label>
+                            <input type="text" id="addCarName" placeholder="차량명 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>비고</label>
+                            <input type="text" id="addNotes" placeholder="비고 입력">
+                        </div>
+                    </div>
+                    <button class="admin-btn" onclick="insertCarData()">💾 신규 등록하기</button>
+                </div>
+
+                <!-- [탭 2] 수정 / 삭제 폼 -->
+                <div id="tabEditDelete" class="admin-tab-content">
+                    <p style="font-size: 0.85em; color: #666; margin-top: 0;">목록에서 차량을 선택하거나 전체 번호로 조회하세요.</p>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.8em; font-weight: bold; color: #555; margin-bottom: 3px;">차량 선택 (전체 목록)</label>
+                        <select id="carSelectDropdown" onchange="onSelectCarDropdown()" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; background-color: #fff;">
+                            <option value="">-- 차량을 선택하세요 --</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" id="targetFullNumber">
+
+                    <div class="admin-input-grid">
+                        <div class="admin-input-group">
+                            <label>검색용 뒷자리 4자리</label>
+                            <input type="text" id="editNumber" placeholder="뒷자리 4자리" maxlength="4">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>부서</label>
+                            <input type="text" id="editDepartment" placeholder="부서 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>성함</label>
+                            <input type="text" id="editName" placeholder="성함 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>전화번호</label>
+                            <input type="text" id="editPhone" placeholder="전화번호 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>차량명</label>
+                            <input type="text" id="editCarName" placeholder="차량명 입력">
+                        </div>
+                        <div class="admin-input-group">
+                            <label>비고</label>
+                            <input type="text" id="editNotes" placeholder="비고 입력">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="admin-btn edit" onclick="updateCarData()" style="flex: 1;">✏️ 정보 수정</button>
+                        <button class="admin-btn delete" onclick="deleteCarData()" style="flex: 1;">🗑️ 삭제</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- 업데이트된 데이터 (전화번호 추가) ---
-const carData = [
-        // --- 이미지 1: 주차 등록 차량 명단(직원) ---
-        { department: "경영지원", name: "박선규 부문장", fullNumber: "8768", number: "8768", carName: "렉스턴", phone: "010-9176-9242", notes: "" },
-        { department: "경영지원", name: "안원갑 책임", fullNumber: "6200", number: "6200", carName: "쏘렌토", phone: "010-5252-4906", notes: "" },
-        { department: "경영지원", name: "신보배 선임", fullNumber: "367도 4728", number: "4728", carName: "트레일블레이저", phone: "010-4177-4902", notes: "" },
-        { department: "경영지원", name: "기숙사 김사감님", fullNumber: "303고 3804", number: "3804", carName: "싼타페", phone: "010-8011-1414", notes: "" },
-        { department: "스키접수처", name: "신예은 책임", fullNumber: "05보 8763", number: "8763", carName: "그랜저", phone: "010-8923-0955", notes: "" },
-        { department: "스키접수처", name: "김민석 선임", fullNumber: "360부 8336", number: "8336", carName: "제타", phone: "010-5208-8637", notes: "" },
-        { department: "마케팅전략", name: "김현창 팀장", fullNumber: "47라 8056", number: "8056", carName: "레이", phone: "010-6750-1243", notes: "" },
-        { department: "마케팅전략", name: "지영찬 책임", fullNumber: "48두 3227", number: "3227", carName: "올란도", phone: "010-3681-9845", notes: "" },
-        { department: "단체", name: "김선필 선임", fullNumber: "19마 6032", number: "6032", carName: "스토닉", phone: "010-8417-1278", notes: "" },
-        { department: "시설", name: "김용백 수석", fullNumber: "321러 7699", number: "7699", carName: "쏘나타", phone: "010-3338-4617", notes: "" },
-        { department: "시설", name: "최성모 책임", fullNumber: "54부 3223", number: "3223", carName: "K5", phone: "010-9112-4233", notes: "" },
-        { department: "시설", name: "이장호 선임", fullNumber: "398서 5054", number: "5054", carName: "아반떼", phone: "010-8500-1610", notes: "" },
-        { department: "시설", name: "박상현 선임", fullNumber: "02머 7578", number: "7578", carName: "티볼리", phone: "010-5215-4939", notes: "" },
-        { department: "시설", name: "박상현 선임", fullNumber: "106버 3568", number: "3568", carName: "니로", phone: "010-5215-4939", notes: "" },
-        { department: "시설", name: "임수택 수석", fullNumber: "242어 1541", number: "1541", carName: "그랜저", phone: "010-6268-9583", notes: "" },
-        { department: "직원식당", name: "양성권 주방장", fullNumber: "187고 9798", number: "9798", carName: "골프", phone: "010-4636-3041", notes: "" },
-        { department: "직원식당", name: "직원 1", fullNumber: "30부 3573", number: "3573", carName: "", phone: "", notes: "" },
-        { department: "직원식당", name: "직원 2", fullNumber: "229호 6146", number: "6146", carName: "", phone: "", notes: "" },
-        { department: "직원식당", name: "식당여사님", fullNumber: "12무 9274", number: "9274", carName: "", phone: "", notes: "" },
-        { department: "직원식당", name: "식당여사님2", fullNumber: "32러 9462", number: "9462", carName: "스파크", phone: "010-5635-6792", notes: "" },
-        { department: "코스관리", name: "유혜원", fullNumber: "221호 6421", number: "6421", carName: "", phone: "010-8055-1565", notes: "" },
+        const SUPABASE_URL = 'https://nihsmjfcriqeuflujrrh.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_hM0gN_gaG4d86oT9k-laRg_KOmfqrn8';
 
-        // --- 이미지 1: 하단 스키관리 파트 ---
-        { department: "스키관리(팀장)", name: "한상수 팀장", fullNumber: "50라 6834", number: "6834", carName: "모닝", phone: "010-8777-4640", notes: "" },
-        { department: "스키관리(리프트)", name: "장동린 수석", fullNumber: "6925", number: "6925", carName: "미니쿠퍼", phone: "010-3775-9777", notes: "" },
-        { department: "스키관리(리프트)", name: "김영대 수석", fullNumber: "221주 5174", number: "5174", carName: "그랜저", phone: "010-6220-7210", notes: "" },
-        { department: "스키관리(리프트)", name: "권용구 책임", fullNumber: "23거 4834", number: "4834", carName: "싼타페", phone: "010-7663-1580", notes: "" },
-        { department: "스키관리(리프트)", name: "권용구 책임", fullNumber: "55더 5979", number: "5979", carName: "모닝", phone: "010-7663-1580", notes: "" },
-        { department: "스키관리(리프트)", name: "범진 책임", fullNumber: "232거 8089", number: "8089", carName: "코나", phone: "010-5804-3000", notes: "" },
-        { department: "스키관리(리프트)", name: "변재훈 선임", fullNumber: "245소 6622", number: "6622", carName: "K7", phone: "010-5373-3084", notes: "" },
-        { department: "스키관리(리프트)", name: "박준혁 선임", fullNumber: "308더 3642", number: "3642", carName: "아반떼", phone: "010-8366-9486", notes: "" },
-        { department: "스키관리(패트롤)", name: "김진한 책임", fullNumber: "342어 7981", number: "7981", carName: "그랜저", phone: "010-7770-1531", notes: "" },
-        { department: "스키관리(패트롤)", name: "최민기 책임", fullNumber: "159오 1437", number: "1437", carName: "그랜저", phone: "010-8615-8547", notes: "" },
-        { department: "스키관리(패트롤)", name: "윤우솔 선임", fullNumber: "245저 1916", number: "1916", carName: "셀토스", phone: "010-7940-7971", notes: "" },
-        { department: "스키관리(제설)", name: "김상훈 수석", fullNumber: "41도 6458", number: "6458", carName: "레이", phone: "010-5496-6727", notes: "" },
-        { department: "스키관리(제설)", name: "장대선 수석", fullNumber: "12노 9977", number: "9977", carName: "폭스바겐", phone: "010-9018-2012", notes: "" },
-        { department: "스키관리(제설)", name: "박경엽 수석", fullNumber: "82수 5950", number: "5950", carName: "칸", phone: "010-3658-9393", notes: "강조표시" },
-        { department: "스키관리(제설)", name: "김원기 책임", fullNumber: "25무 1965", number: "1965", carName: "스바루", phone: "010-7750-6176", notes: "" },
-        { department: "스키관리(제설)", name: "김원기 책임", fullNumber: "60머 8410", number: "8410", carName: "모닝", phone: "010-7750-6176", notes: "" },
-        { department: "스키관리(제설)", name: "박효태 책임", fullNumber: "34누 8065", number: "8065", carName: "벤츠", phone: "010-9257-6246", notes: "" },
-        { department: "스키관리(제설)", name: "박효태 책임", fullNumber: "189라 3884", number: "3884", carName: "쏘렌토", phone: "010-9257-6246", notes: "" },
-        { department: "스키관리(제설)", name: "전재홍 책임", fullNumber: "36서 6772", number: "6772", carName: "카니발", phone: "010-9087-7363", notes: "" },
-        { department: "스키관리(제설)", name: "배현준 책임", fullNumber: "92머 2782", number: "2782", carName: "포터", phone: "010-4357-8501", notes: "" },
-
-        // --- 이미지 2: 주차 등록 차량 명단(직원 외) ---
-        { department: "사설", name: "최용우", fullNumber: "08거 4024", number: "4024", carName: "카니발", phone: "010-6599-5797", notes: "" },
-        { department: "사설", name: "주수정", fullNumber: "103보 9276", number: "9276", carName: "산타페", phone: "010-6400-5555", notes: "" },
-        { department: "스키학교", name: "심경섭", fullNumber: "01더 0909", number: "0909", carName: "테슬라Y", phone: "010-9999-7748", notes: "" },
-        { department: "스키학교", name: "문주원", fullNumber: "343나 2849", number: "2849", carName: "코나", phone: "010-7777-4756", notes: "" },
-        { department: "스키학교", name: "김민석", fullNumber: "52우 0838", number: "0838", carName: "스포티지", phone: "010-9364-9662", notes: "" },
-        { department: "단체", name: "아세로", fullNumber: "16도 1806", number: "1806", carName: "테슬라Y", phone: "010-4401-4111", notes: "" },
-        { department: "단체", name: "아세로", fullNumber: "05조 4809", number: "4809", carName: "티볼리", phone: "010-2781-7943", notes: "" },
-        { department: "2층 식당", name: "쎄쎄반점", fullNumber: "09부 4745", number: "4745", carName: "벤츠", phone: "010-2265-2076", notes: "" },
-        { department: "2층 식당", name: "쎄쎄반점", fullNumber: "20주 5589", number: "5589", carName: "모닝밴(택배)", phone: "010-3825-7970", notes: "" },
-        { department: "2층 식당", name: "오늘의분식", fullNumber: "14노 8273", number: "8273", carName: "", phone: "010-8830-6604", notes: "" },
-        //{ department: "2층 식당", name: "남산돈까스", fullNumber: "", number: "", carName: "", phone: "", notes: "추가예정" },
-        { department: "렌탈", name: "장비렌탈", fullNumber: "307거 1525", number: "1525", carName: "더 뉴 그랜저", phone: "010-7553-9116", notes: "" },
-        { department: "렌탈", name: "의류렌탈", fullNumber: "77두 4727", number: "4727", carName: "스타렉스", phone: "010-5296-9271", notes: "" },
-        { department: "렌탈", name: "의류렌탈", fullNumber: "26호 2486", number: "2486", carName: "k5", phone: "010-5914-9271", notes: "" },
-        { department: "3층 카페", name: "제니스", fullNumber: "67누 0137", number: "0137", carName: "BMW118D", phone: "010-2714-0633", notes: "" }
-    ];
-
-        const uniqueNumbers = Array.from(new Set(carData.map(d => d.number))).sort();
-        const carMapMulti = new Map();
-        carData.forEach(car => {
-            if (!car.number) return; 
-            if (!carMapMulti.has(car.number)) carMapMulti.set(car.number, []);
-            carMapMulti.get(car.number).push(car);
-        });
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let carData = [];
+        let uniqueNumbers = [];
+        let filteredNumbers = [];
+        let carMapMulti = new Map();
+        let currentPrefix = 'ALL';
 
         const itemsPerPage = 16; 
         let currentPage = 1;
-        const totalPages = Math.ceil(uniqueNumbers.length / itemsPerPage);
+        let totalPages = 1;
+
         const numberList = document.getElementById('numberList');
         const prevPageButton = document.getElementById('prevPage');
         const nextPageButton = document.getElementById('nextPage');
         const currentPageDisplay = document.getElementById('currentPageDisplay');
         const searchInput = document.getElementById('searchInput');
         const searchResultDiv = document.getElementById('searchResult');
+        const totalCarCount = document.getElementById('totalCarCount');
+        const prefixTabMenu = document.getElementById('prefixTabMenu');
+
+        async function fetchCarData() {
+            const { data, error } = await supabaseClient
+                .from('skicar_data')
+                .select('*');
+
+            if (error) {
+                console.error('데이터 조회 실패:', error);
+                searchResultDiv.innerHTML = '<p class="not-found">❌ 데이터를 불러오는 데 실패했습니다.</p>';
+                return;
+            }
+
+            carData = data;
+            totalCarCount.textContent = `총 ${carData.length}대`;
+            
+            uniqueNumbers = Array.from(new Set(carData.map(d => d.number))).sort();
+            carMapMulti.clear();
+            carData.forEach(car => {
+                if (!car.number) return; 
+                if (!carMapMulti.has(car.number)) carMapMulti.set(car.number, []);
+                carMapMulti.get(car.number).push(car);
+            });
+
+            filterNumbersByPrefix(currentPrefix);
+            buildPrefixTabs();
+            searchResultDiv.innerHTML = '<div class="instruction">번호를 입력하시면 전화번호를 포함한 상세 정보가 표시됩니다.</div>';
+            renderList(currentPage);
+            populateCarDataDropdown();
+        }
+
+        // 앞자리 탭 동적 생성
+        function buildPrefixTabs() {
+            // 존재하는 번호들의 첫 번째 자리 추출 (0, 1, 2 등)
+            const prefixes = Array.from(new Set(uniqueNumbers.map(num => num.charAt(0)))).sort();
+            
+            let html = `<button class="prefix-tab-btn ${currentPrefix === 'ALL' ? 'active' : ''}" onclick="selectPrefix('ALL')">전체</button>`;
+            prefixes.forEach(p => {
+                html += `<button class="prefix-tab-btn ${currentPrefix === p ? 'active' : ''}" onclick="selectPrefix('${p}')">${p}</button>`;
+            });
+            prefixTabMenu.innerHTML = html;
+        }
+
+        window.selectPrefix = function(prefix) {
+            currentPrefix = prefix;
+            currentPage = 1;
+            filterNumbersByPrefix(prefix);
+            buildPrefixTabs();
+            renderList(currentPage);
+        }
+
+        function filterNumbersByPrefix(prefix) {
+            if (prefix === 'ALL') {
+                filteredNumbers = [...uniqueNumbers];
+            } else {
+                filteredNumbers = uniqueNumbers.filter(num => num.charAt(0) === prefix);
+            }
+            totalPages = Math.ceil(filteredNumbers.length / itemsPerPage);
+        }
+
+        // 수정 탭 드롭다운 목록 채우기
+        function populateCarDataDropdown() {
+            const dropdown = document.getElementById('carSelectDropdown');
+            dropdown.innerHTML = '<option value="">-- 차량을 선택하세요 --</option>';
+            const sortedCars = [...carData].sort((a, b) => (a.full_number || '').localeCompare(b.full_number || ''));
+            
+            sortedCars.forEach(car => {
+                if (!car.full_number) return;
+                const option = document.createElement('option');
+                option.value = car.full_number;
+                option.textContent = `${car.full_number} (${car.name || '성함없음'} / ${car.department || '부서없음'})`;
+                dropdown.appendChild(option);
+            });
+        }
+
+        function onSelectCarDropdown() {
+            const selectedFullNumber = document.getElementById('carSelectDropdown').value;
+            if (!selectedFullNumber) return;
+
+            const targetCar = carData.find(c => c.full_number === selectedFullNumber);
+            if (!targetCar) return;
+
+            document.getElementById('targetFullNumber').value = targetCar.full_number;
+            document.getElementById('editNumber').value = targetCar.number || '';
+            document.getElementById('editDepartment').value = targetCar.department || '';
+            document.getElementById('editName').value = targetCar.name || '';
+            document.getElementById('editPhone').value = targetCar.phone || '';
+            document.getElementById('editCarName').value = targetCar.car_name || '';
+            document.getElementById('editNotes').value = targetCar.notes || '';
+        }
 
         function createDetailTable(car, index) {
             const header = carMapMulti.get(car.number).length > 1 
-                ? `<p class="found">✅ 일치 정보 ${index} / ${carMapMulti.get(car.number).length} (${car.fullNumber})</p>`
-                : `<p class="found">✅ 등록된 차량입니다! (${car.fullNumber})</p>`;
+                ? `<p class="found">✅ 일치 정보 ${index} / ${carMapMulti.get(car.number).length} (${car.full_number})</p>`
+                : `<p class="found">✅ 등록된 차량입니다! (${car.full_number})</p>`;
             
-            const displayCarName = (car.carName && car.carName.trim() !== '') ? car.carName : '정보 없음';
+            const displayCarName = (car.car_name && car.car_name.trim() !== '') ? car.car_name : '정보 없음';
             const displayPhone = (car.phone && car.phone.trim() !== '') 
                 ? `<a href="tel:${car.phone}" class="tel-link">${car.phone}</a>` 
                 : '정보 없음';
@@ -216,25 +405,157 @@ const carData = [
             numberList.innerHTML = ''; 
             const start = (currentPage - 1) * itemsPerPage;
             const end = start + itemsPerPage;
-            const pageNumbers = uniqueNumbers.slice(start, end);
-            pageNumbers.forEach(number => {
-                const li = document.createElement('li');
-                li.textContent = number;
-                li.addEventListener('click', () => window.executeSearch(number)); 
-                numberList.appendChild(li);
-            });
+            const pageNumbers = filteredNumbers.slice(start, end);
+            
+            if (pageNumbers.length === 0) {
+                numberList.innerHTML = '<li style="width: 100%; color: #6c757d; background: none;">표시할 차량이 없습니다.</li>';
+            } else {
+                pageNumbers.forEach(number => {
+                    const li = document.createElement('li');
+                    li.textContent = number;
+                    li.addEventListener('click', () => window.executeSearch(number)); 
+                    numberList.appendChild(li);
+                });
+            }
             updatePaginationControls();
         }
 
         function updatePaginationControls() {
             prevPageButton.disabled = currentPage === 1;
-            nextPageButton.disabled = currentPage === totalPages;
-            currentPageDisplay.textContent = `${currentPage} / ${totalPages}`;
+            nextPageButton.disabled = currentPage >= totalPages || totalPages === 0;
+            currentPageDisplay.textContent = `${currentPage} / ${totalPages || 1}`;
         }
 
         prevPageButton.addEventListener('click', () => { if (currentPage > 1) renderList(currentPage - 1); });
         nextPageButton.addEventListener('click', () => { if (currentPage < totalPages) renderList(currentPage + 1); });
-        document.addEventListener('DOMContentLoaded', () => renderList(1));
+
+        // --- 관리자 모달 및 탭 제어 ---
+        function openAdminModal() { document.getElementById('adminModal').style.display = 'flex'; }
+        function closeAdminModal() { document.getElementById('adminModal').style.display = 'none'; }
+
+        function switchAdminTab(tabName) {
+            document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tabName === 'add') {
+                document.querySelectorAll('.admin-tab-btn')[0].classList.add('active');
+                document.getElementById('tabAdd').classList.add('active');
+            } else {
+                document.querySelectorAll('.admin-tab-btn')[1].classList.add('active');
+                document.getElementById('tabEditDelete').classList.add('active');
+            }
+        }
+
+        async function verifyAdminPassword() {
+            const inputPw = document.getElementById('adminPasswordInput').value;
+            const { data, error } = await supabaseClient
+                .from('app_settings')
+                .select('value')
+                .eq('key', 'shared_password');
+
+            if (error) {
+                alert('❌ 암호 확인 중 오류가 발생했습니다.');
+                return;
+            }
+
+            const correctPassword = (data && data.length > 0) ? data[0].value : '8002';
+
+            if (inputPw === correctPassword) {
+                alert('✅ 관리자 모드가 활성화되었습니다.');
+                document.getElementById('adminLoginArea').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+            } else {
+                alert('❌ 공용 암호가 틀렸습니다.');
+            }
+        }
+
+        function logoutAdmin() {
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('adminLoginArea').style.display = 'block';
+            closeAdminModal();
+            alert('🔒 관리자 모드가 잠겼습니다.');
+        }
+
+        async function insertCarData() {
+            const full_number = document.getElementById('addFullNumber').value.trim();
+            const number = document.getElementById('addNumber').value.trim();
+            const department = document.getElementById('addDepartment').value.trim();
+            const name = document.getElementById('addName').value.trim();
+            const phone = document.getElementById('addPhone').value.trim();
+            const car_name = document.getElementById('addCarName').value.trim();
+            const notes = document.getElementById('addNotes').value.trim();
+
+            if (!full_number || !number || number.length !== 4) {
+                alert('⚠️ 전체 차량번호와 검색용 뒷자리 4자리를 정확히 입력해주세요.');
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('skicar_data')
+                .insert([{ full_number, number, department, name, phone, car_name, notes }]);
+
+            if (error) {
+                alert('❌ 등록 중 오류가 발생했습니다.');
+            } else {
+                alert('✅ 성공적으로 신규 등록되었습니다!');
+                fetchCarData();
+                closeAdminModal();
+            }
+        }
+
+        async function updateCarData() {
+            const full_number = document.getElementById('targetFullNumber').value.trim();
+            const number = document.getElementById('editNumber').value.trim();
+            const department = document.getElementById('editDepartment').value.trim();
+            const name = document.getElementById('editName').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+            const car_name = document.getElementById('editCarName').value.trim();
+            const notes = document.getElementById('editNotes').value.trim();
+
+            if (!full_number) {
+                alert('⚠️ 수정할 차량을 선택해주세요.');
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('skicar_data')
+                .update({ number, department, name, phone, car_name, notes })
+                .eq('full_number', full_number);
+
+            if (error) {
+                alert('❌ 수정 중 오류가 발생했습니다.');
+            } else {
+                alert('✅ 성공적으로 수정되었습니다!');
+                fetchCarData();
+                closeAdminModal();
+            }
+        }
+
+        async function deleteCarData() {
+            const full_number = document.getElementById('targetFullNumber').value.trim();
+            if (!full_number) {
+                alert('⚠️ 삭제할 차량을 선택해주세요.');
+                return;
+            }
+
+            if (!confirm(`정말 [${full_number}] 차량 정보를 삭제하시겠습니까?`)) return;
+
+            const { error } = await supabaseClient
+                .from('skicar_data')
+                .delete()
+                .eq('full_number', full_number);
+
+            if (error) {
+                alert('❌ 삭제 중 오류가 발생했습니다.');
+            } else {
+                alert('🗑️ 성공적으로 삭제되었습니다!');
+                fetchCarData();
+                closeAdminModal();
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', fetchCarData);
     </script>
 </body>
 </html>
